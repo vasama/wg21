@@ -52,12 +52,14 @@ namespace std {
   void __implicitly_convertible_function(_To) noexcept;
 
   template<typename _From, typename _To>
-  concept __implicitly_convertible = requires(_From&& __from) {
+  concept __implicitly_convertible = requires(_From&& __from)
+  {
     __implicitly_convertible_function<_To>(static_cast<_From&&>(__from));
   };
 
   template<typename _To, __implicitly_convertible<_To> _From>
-  constexpr _To implicit_cast(_From&& __from) noexcept(noexcept(__implicitly_convertible_function<_To>(static_cast<_From&&>(__from))))
+  constexpr _To implicit_cast(_From&& __from)
+    noexcept(noexcept(__implicitly_convertible_function<_To>(static_cast<_From&&>(__from))))
   {
     return static_cast<_From&&>(__from);
   }
