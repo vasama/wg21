@@ -5,7 +5,7 @@ date: today
 audience: Library Evolution Group
 author:
   - name: Lauri Vasama
-    email: <lauri@vasama.org>
+    email: <wg21@vasama.org>
 toc: true
 ---
 
