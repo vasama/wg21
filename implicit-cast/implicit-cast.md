@@ -18,7 +18,20 @@ toc: true
   void f(auto& object);
   f(implicit_cast<base&>(derived));
   ```
-* 
+* Explicitly spelling out a conversion is sometimes necessary, while an explicit conversion is not desired.
+  ```
+  auto f(auto x)
+  {
+    if constexpr (some condition)
+    {
+      return compute_foo(x);
+    }
+    else
+    {
+      return implicit_cast<foo>(x);
+    }
+  }
+  ```
 
 # Proposed wording
 
