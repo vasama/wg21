@@ -16,17 +16,17 @@ The `offsetof` macro is also changed to be unconditionally-supported for static-
 
 # Proposed wording
 
+## Add to section 21.3.3 Header `<type_traits>` Synopsis `[meta.type.synop]`
+
 ```
 namespace std {
 
-  template<typename T>
-  struct is_static_layout
-  {
-    static constexpr bool value = /* implementation defined */ ;
-  };
+:::add
+  template<class T> struct is_static_layout;
 
-  template<typename T>
+  template<class T>
   inline constexpr bool is_static_layout_v = is_static_layout<T>::value;
+:::
 
 }
 ```
