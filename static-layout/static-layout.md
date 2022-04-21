@@ -1,5 +1,5 @@
 ---
-title: "Accessing data member offsets"
+title: "Static-layout types"
 document: D0xxxR0
 date: today
 audience: Library Evolution Group
