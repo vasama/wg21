@@ -15,6 +15,10 @@ Today the concept of a _standard-layout type_ is used a catch-all for constraini
 
 The `offsetof` macro is also changed to be unconditionally-supported for static-layout class types, and ill formed for other types.
 
+# Design considerations
+
+Is there a need for a separate named superset _static-layout type_ of _static-layout class_?
+
 # Proposed wording
 
 ## Add to section 21.3.3 Header `<type_traits>` Synopsis `[meta.type.synop]`
