@@ -31,12 +31,10 @@ namespace std {
 }
 ```
 
+## Add new subsection to section 11.2 Properties of classes `[class.prop]`
+
 :::add
-
-Add to section 11.2 Properties of classes [class.prop]
-
-A _static-layout class_ is a class with a single layout applicable to all objects of the class. A _standard-layout class_ is a _static-layout class_.
-
+A _static-layout class_ is a class with a single unspecified layout shared by all objects of the class. A _standard-layout class_ is a _static-layout class_.
 :::
 
 ## Modify section 17.2.4 Sizes, alignments, and offsets `[support.types.layout]`
