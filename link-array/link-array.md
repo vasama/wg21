@@ -21,9 +21,10 @@ It is often desirable to statically define sets of things in a distributed manne
 * Is subject to the static initialisation order fiasco if other static initialisers should access the list, even when the actual data is known statically and could in theory be constant initialised.
 * Use in certain domains such as embedded firmware poses challenges: data must either be stored in a linked list or some form of dynamic allocation is required.
 * Adds unnecessary runtime overhead in both time and memory.
-* It is made fragile due to the fact that static initialisers - even when they have side effects - are not always executed if the objects they initialise are never used. Ironically this also works the other way around: static initialisers with side effects cannot be elided because their effects, i.e. the set they build at runtime, are not being used.
+* Is made fragile due to the fact that static initialisers - even when they have side effects - are not always executed if the objects they initialise are never used.
+  Ironically this also works the other way around: static initialisers with side effects cannot be elided when their effects, i.e. the set they build at runtime, are not actually being used.
 
-Existing use cases:
+Some existing use cases:
 * Test case registration in all major C++ unit test frameworks.
 * Optimisation pass registration in LLVM.
 * Type information registration in Unreal Engine 4.
