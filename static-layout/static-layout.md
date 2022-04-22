@@ -2,7 +2,7 @@
 title: "Static-layout types"
 document: D0xxxR0
 date: today
-audience: Library Evolution Group
+audience: Language Evolution Working Group
 author:
   - name: Lauri Vasama
     email: <wg21@vasama.org>
