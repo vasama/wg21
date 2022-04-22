@@ -15,13 +15,23 @@ Today the concept of a _standard-layout type_ is used a catch-all for constraini
 
 The `offsetof` macro is also changed to be unconditionally-supported for static-layout class types, and ill formed for other types.
 
-# Design considerations
-
-Is there a need for a separate named superset _static-layout type_ of _static-layout class_?
-
 # Proposed wording
 
-Add to __§21.3.3 Header `<type_traits>` Synopsis `[meta.type.synop]`__
+Modify __§6.8.1.9 [basic.types.general]__
+
+Arithmetic types ([basic.fundamental]), enumeration types, pointer types, pointer-to-member types ([basic.compound]), `std​::​nullptr_­t`, and cv-qualified versions of these types are collectively called _scalar types_. Scalar types, trivially copyable class types ([class.prop]), arrays of such types, and cv-qualified versions of these types are collectively called _trivially copyable types_. Scalar types, trivial class types ([class.prop]), arrays of such types and cv-qualified versions of these types are collectively called _trivial types_. Scalar types, standard-layout class types ([class.prop]), arrays of such types and cv-qualified versions of these types are collectively called _standard-layout types_. [Standard-layout types, static-layout class types ([class.prop]), arrays of such types and cv-qualified versions of these types are collectively called _static-layout types_.]{.add} Scalar types, implicit-lifetime class types ([class.prop]), array types, and cv-qualified versions of these types are collectively called implicit-lifetime types.
+
+Add new subsection to __§11.2 [class.prop]__
+
+:::add
+A _static-layout class_ is a class with a single unspecified layout shared by all objects of the class. A _standard-layout class_ is a _static-layout class_.
+:::
+
+Modify __§17.2.4 [support.types.layout]__
+
+The macro `offsetof(type, member-designator)` has the same semantics as the corresponding macro in the C standard library header `<stddef.h>`, but accepts a restricted set of _type_ arguments in this document. Use of the `offsetof` macro with a _type_ other than a [standard-layout class]{.rm} [static-layout class]{.add} ([class.prop]) is [conditionally-supported]{.rm} [ill formed]{.add}. The expression `offsetof(type, member-designator)` is never type-dependent and it is value-dependent if and only if _type_ is dependent. The result of applying the `offsetof` macro to a static data member or a function member is undefined. No operation invoked by the `offsetof` macro shall throw an exception and `noexcept(offsetof(type, member-designator))` shall be true.
+
+Add to __§21.3.3 [meta.type.synop]__
 
 :::add
 ```
@@ -35,14 +45,3 @@ namespace std {
 }
 ```
 :::
-
-Add new subsection to __§11.2 Properties of classes `[class.prop]`__
-
-:::add
-A _static-layout class_ is a class with a single unspecified layout shared by all objects of the class. A _standard-layout class_ is a _static-layout class_.
-:::
-
-Modify __§17.2.4 Sizes, alignments, and offsets `[support.types.layout]`__
-
-The macro `offsetof(type, member-designator)` has the same semantics as the corresponding macro in the C standard library header `<stddef.h>`, but accepts a restricted set of _type_ arguments in this document. Use of the `offsetof` macro with a _type_ other than a [standard-layout class]{.rm} [static-layout class]{.add} ([class.prop]) is [conditionally-supported]{.rm} [ill formed]{.add}. The expression `offsetof(type, member-designator)` is never type-dependent and it is value-dependent if and only if _type_ is dependent. The result of applying the `offsetof` macro to a static data member or a function member is undefined. No operation invoked by the `offsetof` macro shall throw an exception and `noexcept(offsetof(type, member-designator))` shall be true.
-
