@@ -33,7 +33,7 @@ namespace std {
 
   template<typename C, typename M>
     requires is_static_layout_v<C>
-  constexpr const C& object_from_member(const M& member, M(C::* ptr)) noexcept;
+  constexpr C const& object_from_member(M const& member, M(C::* ptr)) noexcept;
 
   template<typename C, typename M>
     requires is_static_layout_v<C>
@@ -51,6 +51,7 @@ namespace std {
 > +
 > + template<typename C, typename M>
 > +   requires is_static_layout_v<C>
+> + constexpr C const& object_from_member(M const& member, M(C::* ptr)) noexcept;
 > ```
 > ::: add
 >> _Requires_: `ptr` shall not be `nullptr`. `member` shall refer to the member pointed to by `ptr` of an instance of `C`.
