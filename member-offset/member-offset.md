@@ -28,15 +28,15 @@ toc: true
 namespace std {
 
   template<typename C, typename M>
-    requires is_standard_layout_v<C>
+    requires is_static_layout_v<C>
   constexpr C& object_from_member(M& member, M(C::* ptr)) noexcept;
 
   template<typename C, typename M>
-    requires is_standard_layout_v<C>
+    requires is_static_layout_v<C>
   constexpr const C& object_from_member(const M& member, M(C::* ptr)) noexcept;
 
   template<typename C, typename M>
-    requires is_standard_layout_v<C>
+    requires is_static_layout_v<C>
   constexpr size_t member_offset(M(C::* ptr)) noexcept;
 
 }
@@ -46,12 +46,11 @@ namespace std {
 
 > ```diff
 > + template<typename C, typename M>
-> +   requires is_standard_layout_v<C>
+> +   requires is_static_layout_v<C>
 > + constexpr C& object_from_member(M& member, M(C::* ptr)) noexcept;
 > +
 > + template<typename C, typename M>
-> +   requires is_standard_layout_v<C>
-> + constexpr const C& object_from_member(const M& member, M(C::* ptr)) noexcept;
+> +   requires is_static_layout_v<C>
 > ```
 > ::: add
 >> _Requires_: `ptr` shall not be `nullptr`. `member` shall refer to the member pointed to by `ptr` of an instance of `C`.
@@ -60,7 +59,7 @@ namespace std {
 
 > ```diff
 > + template<typename C, typename M>
-> +   requires is_standard_layout_v<C>
+> +   requires is_static_layout_v<C>
 > + constexpr size_t member_offset(M(C::* ptr)) noexcept;
 > ```
 > ::: add
