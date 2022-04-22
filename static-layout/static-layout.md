@@ -13,7 +13,7 @@ toc: false
 
 Today the concept of a _standard-layout type_ is used a catch-all for constraining any layout related operations. However, because its primary use and the use case which restricts the set of applicable types the most is communication with foreign languages and systems, it ends up being overly restricted to fully cover certain other use cases. This paper proposes a new named superset of _standard-layout types_: _static-layout types_. A _static-layout type_ is a type which layout does not vary between different objects of the type. All commercially relevant C++ implementations today use static layouts for the majority of types, the sole exception being types employing virtual inheritance. Thus what this paper proposes is standardising the existing industry practice of static type layouts by giving it a name, and exposing it to the language user in the form of a new standard library type trait.
 
-The `offsetof` macro is also changed to be unconditionally-supported for static-layout class types, and ill formed for other types.
+The `offsetof` macro is also changed to be supported for static-layout class types, and ill formed for other types.
 
 # Proposed wording
 
