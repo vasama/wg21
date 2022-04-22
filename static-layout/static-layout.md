@@ -21,28 +21,28 @@ Is there a need for a separate named superset _static-layout type_ of _static-la
 
 # Proposed wording
 
-## Add to section 21.3.3 Header `<type_traits>` Synopsis `[meta.type.synop]`
+Add to __§21.3.3 Header `<type_traits>` Synopsis `[meta.type.synop]`__
 
+:::add
 ```
 namespace std {
 
-:::add
   template<class T> struct is_static_layout;
 
   template<class T>
   inline constexpr bool is_static_layout_v = is_static_layout<T>::value;
-:::
 
 }
 ```
+:::
 
-## Add new subsection to section 11.2 Properties of classes `[class.prop]`
+Add new subsection to __§11.2 Properties of classes `[class.prop]`__
 
 :::add
 A _static-layout class_ is a class with a single unspecified layout shared by all objects of the class. A _standard-layout class_ is a _static-layout class_.
 :::
 
-## Modify section 17.2.4 Sizes, alignments, and offsets `[support.types.layout]`
+Modify __§17.2.4 Sizes, alignments, and offsets `[support.types.layout]`__
 
 The macro `offsetof(type, member-designator)` has the same semantics as the corresponding macro in the C standard library header `<stddef.h>`, but accepts a restricted set of _type_ arguments in this document. Use of the `offsetof` macro with a _type_ other than a [standard-layout class]{.rm} [static-layout class]{.add} ([class.prop]) is ill formed. The expression `offsetof(type, member-designator)` is never type-dependent and it is value-dependent if and only if _type_ is dependent. The result of applying the `offsetof` macro to a static data member or a function member is undefined. No operation invoked by the `offsetof` macro shall throw an exception and `noexcept(offsetof(type, member-designator))` shall be true.
 
