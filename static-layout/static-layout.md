@@ -6,7 +6,7 @@ audience: Library Evolution Group
 author:
   - name: Lauri Vasama
     email: <wg21@vasama.org>
-toc: true
+toc: false
 ---
 
 # Introduction
