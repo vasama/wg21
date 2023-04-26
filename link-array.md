@@ -27,7 +27,8 @@ It is often desirable to statically define sets of things in a distributed manne
 Some existing use cases:
 * Test case registration in all major C++ unit test frameworks.
 * Optimisation pass registration in LLVM.
-* Type information registration in Unreal Engine 4.
+* Type information registration in Unreal Engine.
+* Multiple tables in iPXE (C language) created using linker sections.
 
 Collation of type information may become a particularly important use case if static reflection is added to the language. A reflection library may register descriptions of user types and other entities in link arrays for runtime use.
 
