@@ -11,7 +11,7 @@ toc: true
 
 # Introduction
 
-Attributes as introduced in C++11 are specified to be ignored if not recognised by the implementation. This makes their use difficult for any new feature that seeks to change the behaviour of the program in observable ways. This problem can be seen with the `no_unique_address` attribute introduced in C++20. Because it affects the layout of types and as such their ABI, Microsoft has been especially hesitant to implement it, and has instead chosen to provide the `msvc::no_unique_address` attribute. It may be argued that this functionality should not have been provided through an ignorable attribute. The alternative solution employed since the inception of attributes, for `consteval` and `constinit` in C++20, is the introduction of new keywords. This is well known to be contentious due to potential conflicts with existing code.
+Attributes as introduced in C++11 are permitted to be ignored if not recognised by the implementation. This makes their use difficult for any new feature that seeks to change the behaviour of the program in observable ways. This problem can be seen with the `no_unique_address` attribute introduced in C++20. Because it affects the layout of types and as such their ABI, Microsoft has been especially hesitant to implement it and has instead chosen to provide the `msvc::no_unique_address` attribute. It may be argued that this functionality should not have been provided through an ignorable attribute. The alternative solution employed since the inception of attributes, for `consteval` and `constinit` in C++20, is the introduction of new keywords. This is well known to be contentious due to potential conflicts with existing code.
 
 # Proposal
 
