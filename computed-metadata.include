@@ -2,8 +2,8 @@
 	"Editor": "Lauri Vasama, wg21@vasama.org",
 	"URL": "[REPOSITORYURL]",
 	"Metadata Include": "This version off",
-	"!Current draft": "<a href=\"https://vasama.github.io/wg21/[SHORTNAME]-latest.html\">vasama.github.io/wg21/[SHORTNAME]Rx.html</a>",
-	"!Current draft source": "<a href=\"https://vasama.github.io/wg21/[SHORTNAME]-source.html\">github.com/[REPOSITORY]/blob/main/[SHORTNAME]Rx.bs</a>",
+	"!Current draft": "<a href=\"https://vasama.github.io/wg21/[SHORTNAME].html\">vasama.github.io/wg21/[SHORTNAME]Rx.html</a>",
+	"!Current draft source": "<a href=\"[REPOSITORYURL]/blob/main/[SHORTNAME].bs\">github.com/[REPOSITORY]/blob/main/[SHORTNAME].bs</a>",
 
 	"Text Macro": "CPP https://eel.is/c++draft",
 	"Complain About": "accidental-2119 yes, missing-example-ids yes",
