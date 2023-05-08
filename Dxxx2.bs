@@ -18,18 +18,19 @@ It is often desirable to define sets of static objects in a distributed manner a
 
 Is this really worth the committee's time? I believe so. While the feature may seem novel, it is arguably standardising existing practice that is being widely used out in the field. In addition this technique is already being employed by major C++ implementations under the hood in order to implement static initialisers, thread local storage, and exception handling.
 
+
 # Existing practice # {#existing}
 
 ## Examples of existing usage in C and C++ ## {#existing_ccpp}
 
-- Test case registration in all major C++ unit test frameworks.
-- Optimisation pass registration in LLVM.
-- Type information registration in Unreal Engine.
-- Type information registration in Boost.Serialization.
-- Registration of multiple types of entities in Qt Framework.
-- Kernel and operation registration in TensorFlow.
-- Generator registration in Apache Thrift.
-- Multiple tables in iPXE (C language) created using linker sections.
+- Test cases in all major C++ unit test frameworks.
+- Optimisation passes in LLVM.
+- Type information in Unreal Engine.
+- Type information in Boost.Serialization.
+- Multiple types of objects in Qt Framework.
+- Kernels and operations in TensorFlow.
+- Generators in Apache Thrift.
+- Multiple tables created using linker sections in iPXE (C language, freestanding).
 - The author is aware of more usage in proprietary code bases.
 
 ## Prior art in other languages ## {#existing_other}
@@ -64,7 +65,7 @@ In standard C++ the only way to achieve the desired result is by building the se
 
 ## Linker sections ## {#alternatives_linker}
 
-Outside of standard C++, there exist implementation specific methods to achieve the desired result using linker sections. The variables making up the array elements are all placed into a single linker section using implementation specific pragmas, attributes or linker scripts. The data is accessed at runtime using special symbols placed by the linker at the beginning and end of the section. This is also how static initialisers themselves are generally implemented. The problems with relying on non-portable linker based solutions should be obvious.
+Outside of standard C++ there exist implementation specific methods to achieve the desired result using linker sections. The variables making up the array elements are all placed into a single linker section using implementation specific pragmas, attributes or linker scripts. The data is accessed at runtime using special symbols placed by the linker at the beginning and end of the section. This is also how static initialisers themselves are generally implemented. The problems with relying on non-portable linker based solutions should be obvious. Apart from the non-portability, this solution also offers poor type safety as any kind of declaration may be placed into the section.
 
 
 # Design considerations # {#design_considerations}
@@ -86,7 +87,7 @@ __distributed_array(A)
 constexpr int E2[] = { 1, 2 };
 </pre>
 
-In existing usage this pattern is often known as "registration" with types such as `thing_registry` or `thing_registrar` being commonly used alongside macros such as `REGISTER_THING`. For this reason repurposing of the now defunct `register` keyword in place of `__distributed_array` might be a good fit.
+In existing usage this pattern is often known as "registration" with types such as `thing_registry` or `thing_registrar` being commonly used alongside macros such as `REGISTER_THING`. For this reason repurposing the now defunct `register` keyword in place of `__distributed_array` might be a good fit.
 
 ## Accessing the size of the distributed array ## {#array_size}
 
@@ -94,11 +95,11 @@ There are at least three alternative approaches for exposing the size of the dis
 
 ### Function-like operator ### {#array_size_operator}
 
-An operator (strawman syntax `__distributed_array_size(A)`) provides the greatest implementation flexibility and safety, but the least user flexibility. The implementation is the least limited in its choice of implementation strategy, and programs using the operator on non-distributed arrays can be made ill formed.
+An operator (strawman syntax `__distributed_array_size(A)`) provides the greatest implementation flexibility and safety, but the least user flexibility. The implementation is the least limited in its choice of implementation strategy, and programs using the operator improperly can be made ill formed.
 
 ### Library template ### {#array_size_template}
 
-A function template with a const array reference non-type template parameter can likely provide implementation flexibility and safety equal or near equal to that of an operator, but with potentially slightly greater user flexibility. The two may end up being equal in both flexibility and safety however, in which case the library template would perhaps be the preferred option.
+A function template with a const array reference non-type template parameter can likely provide implementation flexibility and safety equal or near equal to that of an operator, but with potentially slightly greater user flexibility. The two may end up being equal in both flexibility and safety however, in which case the library template might be the preferred option.
 
 Possible implementation:
 <pre highlight="c++">
@@ -115,13 +116,15 @@ size_t distributed_array_size() noexcept
 
 ### Library function ### {#array_size_function}
 
-A function template with a pointer parameter can provide the greatest user flexibility at the cost of lesser implementation flexibility and safety. The implementation could for example store the size of the array before the array elements in memory. Calling this function with a pointer pointing to something other than the first element of a distributed array would have to be undefined behaviour.
+A function template with a pointer parameter can provide the greatest user flexibility at the cost of lesser implementation flexibility and safety. Calling this function with a pointer pointing to something other than the first element of a distributed array would have to have undefined behaviour.
 
 Possible implementation:
 <pre highlight="c++">
 size_t distributed_array_size(auto const* const array) noexcept
 {
-	// The size might be placed before the array data in memory by the linker.
+	// The size might be stored before the first element in memory.
+	// Note that this otherwise invalid cast exists only
+	// to illustrate a potential implementation strategy.
 	return reinterpret_cast&lt;size_t const*&gt;(array)[-1];
 }
 </pre>
@@ -134,17 +137,17 @@ size_t distributed_array_size(auto const* const array) noexcept
 
 ## Dynamic linking ## {#dynamic_linking}
 
-Any attempt to dynamically link together multiple distributed array definitions into a single process wide array is obviously problematic in the presence of dynamic loading and unloading of libraries. On Windows where each DLL (Dynamic Link Library) is practically its own program, this issue has an obvious solution. On Linux the best solution might be for the dynamic linker to consider distributed array definitions for the same array declaration from two shared libraries as being in conflict with one another. With dynamic linking being out of scope for the standard, this issue should not have major effects on the proposal.
+Any attempt to dynamically link together multiple distributed array definitions into a single array is obviously problematic in the presence of dynamic loading and unloading of libraries. On Windows where each DLL (Dynamic Link Library) is practically its own program, this is not a problem. On Linux the best solution might be for the dynamic linker to consider distributed array definitions for the same array declaration from two shared libraries to be in conflict with one another. With dynamic linking being out of scope for the standard, this issue should not have a major effect on the proposal.
 
 
 # Implementation experience # {#implementation}
 
-Existing linkers already support merging symbols into arrays from multiple translation units in order to implement static initialisers, thread local storage and exception handling. Guaranteeing inclusion of all elements in the final binary may require changes. More work is needed to provide a prototype implementation or testimonials regarding implementability from compiler implementers.
+Existing linkers already support merging symbols into arrays from multiple translation units in order to implement static initialisers, thread local storage and exception handling. More work is needed to provide a prototype implementation or testimonials from compiler implementers regarding the implementability of this feature.
 
 
 # Examples # {#examples}
 
-These examples use the library function syntax for accessing the size of the distributed array (`std::distributed_array_size(A)`, see [[#array_size_function]]).
+These examples use the library function syntax to access the size of the distributed array. See [[#array_size_function]].
 
 ## Comparison to static initialisers ## {#examples_comparison}
 
