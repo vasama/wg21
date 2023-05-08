@@ -102,7 +102,7 @@ A function template with a const array reference non-type template parameter can
 
 Possible implementation:
 <pre highlight="c++">
-template<auto const& Array>
+template&lt;auto const&amp; Array&gt;
 size_t distributed_array_size() noexcept
 {
 	// The size might be calculated by subtraction of
@@ -122,7 +122,7 @@ Possible implementation:
 size_t distributed_array_size(auto const* const array) noexcept
 {
 	// The size might be placed before the array data in memory by the linker.
-	return reinterpret_cast<size_t const*>(array)[-1];
+	return reinterpret_cast&lt;size_t const*&gt;(array)[-1];
 }
 </pre>
 
@@ -156,13 +156,13 @@ These examples use the library function syntax for accessing the size of the dis
 	<tr>
 		<td>
 		<pre highlight="c++">
-std::vector<int>& get_array_storage()
+std::vector&lt;int&gt;&amp; get_array_storage()
 {
-	static std::vector<T> vector;
+	static std::vector&lt;T&gt; vector;
 	return vector;
 }
 
-std::span<int const> get_array()
+std::span&lt;int const&gt; get_array()
 {
 	return get_array_storage();
 }
@@ -179,7 +179,7 @@ static char const elements_pusher = (
 		<pre highlight="c++">
 extern int const array[];
 
-std::span<int const> get_array()
+std::span&lt;int const&gt; get_array()
 {
 	return std::span(array, std::distributed_array_size(array));
 }
