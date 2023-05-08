@@ -144,7 +144,7 @@ Existing linkers already support merging symbols into arrays from multiple trans
 
 # Examples # {#examples}
 
-These examples use the library function syntax for accessing the size of the distributed array (`std::distributed_array_size(A)`, see #array_size_function).
+These examples use the library function syntax for accessing the size of the distributed array (`std::distributed_array_size(A)`, see [[#array_size_function]]).
 
 ## Comparison to static initialisers ## {#examples_comparison}
 
