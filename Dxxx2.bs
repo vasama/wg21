@@ -34,7 +34,7 @@ Is this really worth the committee's time? I believe so. While the feature may s
 
 ## Prior art in other languages {#existing_other}
 
-### <a href="https://github.com/dtolnay/linkme">github.com/dtolnay/linkme</a>
+### <a href="https://github.com/dtolnay/linkme">github.com/dtolnay/linkme</a> {#existing_other_linkme}
 Linkme is a Rust library implementing distributed arrays using linker sections. From the readme:
 <blockquote>
 A distributed slice is a collection of static elements that are gathered into a contiguous section of the binary by the linker. Slice elements may be defined individually from anywhere in the dependency graph of the final binary.
@@ -42,7 +42,7 @@ A distributed slice is a collection of static elements that are gathered into a 
 The implementation is based on link_section attributes and platform-specific linker support. It does not involve life-before-main or any other runtime initialization on any platform. This is a zero-cost safe abstraction that operates entirely during compilation and linking.
 </blockquote>
 
-### Runtime reflection {#existing_reflection}
+### Runtime reflection {#existing_other_reflection}
 
 In languages such as Java and C# with support for runtime reflection, similar results are achieved by reflecting over the program at runtime and picking out types or functions decorated with specific attributes. In these languages the technique seems especially popular for service discovery paired with dependency injection.
 
