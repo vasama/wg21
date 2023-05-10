@@ -16,21 +16,75 @@ Local Boilerplate: computed-metadata yes
 
 It is often desirable to define sets of static objects in a distributed manner across multiple translation units without explicitly and manually maintaining the full list of elements in any single location. This improves software maintainability when the entire set must ultimately be available at runtime.
 
-Is this really worth the committee's time? I believe so. While the feature may seem novel, it is arguably standardising existing practice that is being widely used out in the field. In addition this technique is already being employed by major C++ implementations under the hood in order to implement static initialisers, thread local storage, and exception handling.
+Is this really worth the committee's time? I believe so. While the feature may seem novel, it is arguably standardising existing practice that is being widely used out in the field. In fact the facility being proposed already is already in use in all major C++ implementations as an implementation strategy for static initialisers, thread local storage and exception handling tables. This paper proposes to expose that existing facility to the programmer.
+
+This feature was previously introduced in [[P2268]] under the name "link-time arrays" with hopes of future standardisation.
+
+## Comparison to state of the art ## {#introduction_comparison}
+
+Here is a quick comparison to static initialiser side effects, which seems to be the solution most often employed by users out in the field today:
+<table>
+	<tr>
+		<th>Static<br>intialisers</th>
+		<th>Distributed<br>array</th>
+	</tr>
+	<tr>
+		<td>
+		<pre highlight="c++">
+std::vector&lt;int&gt;&amp; get_array_storage() {
+	static std::vector&lt;T&gt; vector;
+	return vector;
+}
+
+std::span&lt;int const&gt; get_array() {
+	return get_array_storage();
+}
+
+
+// In another translation unit.
+[[maybed_unused]]
+static char const elements_pusher = (
+	get_array_storage().push_back(value_0),
+	get_array_storage().push_back(value_1),
+	0 /* elements_pusher value. */);
+		</pre>
+		</td>
+		<td>
+		<pre highlight="c++">
+extern int const array[];
+
+std::span&lt;int const&gt; get_array() {
+	return std::span(
+		array,
+		std::distributed_array_size(array));
+}
+
+
+// In another translation unit.
+__distributed_array(array)
+static int const elements[] = {
+	value_0,
+	value_1,
+};
+		</pre>
+		</td>
+	</tr>
+</table>
 
 
 # Existing practice # {#existing}
 
 ## Examples of existing usage in C and C++ ## {#existing_ccpp}
 
-- Test cases in all major C++ unit test frameworks.
-- Optimisation passes in LLVM.
-- Type information in Unreal Engine.
-- Type information in Boost.Serialization.
-- Multiple types of objects in Qt Framework.
-- Kernels and operations in TensorFlow.
-- Generators in Apache Thrift.
-- Multiple tables created using linker sections in iPXE (C language, freestanding).
+- Test cases in all major C++ unit test frameworks (<a href="https://github.com/catchorg/Catch2/blob/0dc82e08dfec25faf6c6c145f3592984db7276cc/src/catch2/internal/catch_test_registry.hpp">Catch2 at GitHub</a>)
+- Optimisation passes in LLVM (<a href="https://github.com/llvm/llvm-project/blob/d526e2ec957fc7bc31d7be3670cd1673c2b4389b/llvm/include/llvm/PassSupport.h">GitHub</a>)
+- Type information in Unreal Engine (Source available on GitHub through <a href="https://www.unrealengine.com/en-US/ue-on-github">Epic Games</a>)
+- Type information in Boost.Serialization (<a href="https://github.com/boostorg/serialization/blob/3f322d4adc3c88a667751ad66ce19217a3bba1f9/include/boost/serialization/void_cast.hpp">GitHub</a>)
+- Multiple types of objects in Qt Framework (<a href="https://github.com/qt/qtbase/blob/278acae61146fae4811bc3643516ff41cdff24fc/src/corelib/kernel/qcoreapplication.h">GitHub</a>)
+- Kernels and operations in TensorFlow (<a href="https://github.com/tensorflow/tensorflow/blob/5a06771ea43a1574a3f9a1a5673b339aa4076f6f/tensorflow/core/framework/op.h">GitHub</a>)
+- Generators in Apache Thrift (<a href="https://github.com/apache/thrift/blob/3880a09565a9a1dad028b3679746eafac268c819/compiler/cpp/src/thrift/generate/t_generator_registry.h">GitHub</a>)
+- Initialisation callbacks in the Linux kernel (<a href="https://github.com/torvalds/linux/blob/16a8829130ca22666ac6236178a6233208d425c3/include/linux/init.h">GitHub</a>)
+- Multiple tables defined using linker sections in iPXE (C language, freestanding) (<a href="https://github.com/ipxe/ipxe/blob/03eea19c19b52851002654c2818b765d4aa42894/src/include/ipxe/tables.h">GitHub</a>)
 - The author is aware of more usage in proprietary code bases.
 
 ## Prior art in other languages ## {#existing_other}
@@ -47,7 +101,7 @@ The implementation is based on link_section attributes and platform-specific lin
 
 In languages such as Java and C# with support for runtime reflection, similar results are achieved by reflecting over the program at runtime and picking out types or functions decorated with specific attributes. In these languages the technique seems especially popular for service discovery paired with dependency injection.
 
-In the case of C++, collation of type information for the purposes of runtime reflection may itself become an important use case in the future if static reflection is added to the language. A runtime reflection library may register descriptions of user types and other entities in distributed arrays for runtime use.
+In the case of C++, collation of type information for the purposes of runtime reflection may itself become an important use case in the future if static reflection is added to the language. A runtime reflection library may register descriptions of user types and other entities in distributed arrays for runtime use. This is already being done out in the field to some extent as seen in Unreal Engine and Boost.Serialization.
 
 
 # Alternatives considered # {#alternatives}
@@ -68,9 +122,26 @@ In standard C++ the only way to achieve the desired result is by building the se
 Outside of standard C++ there exist implementation specific methods to achieve the desired result using linker sections. The variables making up the array elements are all placed into a single linker section using implementation specific pragmas, attributes or linker scripts. The data is accessed at runtime using special symbols placed by the linker at the beginning and end of the section. This is also how static initialisers themselves are generally implemented. The problems with relying on non-portable linker based solutions should be obvious. Apart from the non-portability, this solution also offers poor type safety as any kind of declaration may be placed into the section.
 
 
-# Design considerations # {#design_considerations}
+# Design considerations # {#design}
 
-## Defining elements of distributed arrays ## {#array_definition}
+## Declaring distributed arrays ## {#design_declaration}
+
+The current revision of this proposal works by providing definitions for unbounded array declarations (`extern T array[];`) through one or more distributed array definitions. This approach was chosen primarily to minimise impact on the existing standard. However introducing a new kind of declaration for distributed arrays is a viable alternative. The strawman syntax `extern T array[register]` was used in [[P2268]] for such declarations.
+
+## Distributed array type ## {#design_type}
+
+A new kind of array declaration would be most powerful if combined with a new kind of array type (strawman syntax `T[register]`, `T(&)[register]`, `T(*)[register]`, etc.). This presents a larger change to the language, but comes with some benefits:
+- Better and earlier diagnostics due to more clearly stated programmer intent.
+- Range-based for loops can be applied to distributed arrays directly.
+- `std::ranges` utilities and algorithms can be applied to distributed arrays directly.
+
+Such new distributed array types would behave similarly to the existing unbounded array types, with the addition of a mechanism for querying the size of a distributed array object (see [[#design_size]]).
+
+## Empty distributed arrays ## {#design_empty}
+
+More so than in the case of regular arrays, it often makes sense to define and use empty distributed arrays. For example, whether the program should perform initialisation steps provided through a distributed array may depend on its build-time configuration. If empty distributed arrays were not allowed, it would be difficult to detect and handle the case where no initialisation was needed.
+
+## Defining elements of distributed arrays ## {#design_definition}
 
 This proposal uses the strawman syntax `__distributed_array(A)` to specify that a variable definition should also act as a partial definition for a previously declared array `A`. All such partial definitions are merged to form a definition for the array `A`. This definition would conflict with any other definition of `A` which is not a distributed array definition.
 
@@ -89,23 +160,28 @@ constexpr int E2[] = { 1, 2 };
 
 In existing usage this pattern is often known as "registration" with types such as `thing_registry` or `thing_registrar` being commonly used alongside macros such as `REGISTER_THING`. For this reason repurposing the now defunct `register` keyword in place of `__distributed_array` might be a good fit.
 
-## Accessing the size of the distributed array ## {#array_size}
+## Accessing the size of the distributed array ## {#design_size}
 
-There are at least three alternative approaches for exposing the size of the distributed array, each with its own pros and cons:
+There are a number of alternative approaches for exposing the size of the distributed array, each with its own pros and cons:
 
-### Function-like operator ### {#array_size_operator}
+### `sizeof` operator ### {#design_size_sizeof}
+
+[[P2268]] put forth the option of defining `sizeof` on distributed arrays as a non-constant-expression. This represents a clear departure from the existing behaviour of the `sizeof` operator. Additionally the size in bytes of the array is generally less useful than the number of elements in the array. Therefore this solution is not recommended by this proposal.
+
+### Function-like operator ### {#design_size_operator}
 
 An operator (strawman syntax `__distributed_array_size(A)`) provides the greatest implementation flexibility and safety, but the least user flexibility. The implementation is the least limited in its choice of implementation strategy, and programs using the operator improperly can be made ill formed.
 
-### Library template ### {#array_size_template}
+Some alternative syntaxes which avoid the introduction of new keywords include `sizeof register(A)` and `operator register(A)`. Neither of these syntaxes seems very appealing however.
+
+### Library template ### {#design_size_template}
 
 A function template with a const array reference non-type template parameter can likely provide implementation flexibility and safety equal or near equal to that of an operator, but with potentially slightly greater user flexibility. The two may end up being equal in both flexibility and safety however, in which case the library template might be the preferred option.
 
 Possible implementation:
 <pre highlight="c++">
 template&lt;auto const&amp; Array&gt;
-size_t distributed_array_size() noexcept
-{
+size_t distributed_array_size() noexcept {
 	// The size might be calculated by subtraction of
 	// pointers to begin and end symbols generated by the linker.
 	return
@@ -114,14 +190,13 @@ size_t distributed_array_size() noexcept
 }
 </pre>
 
-### Library function ### {#array_size_function}
+### Library function ### {#design_size_function}
 
 A function template with a pointer parameter can provide the greatest user flexibility at the cost of lesser implementation flexibility and safety. Calling this function with a pointer pointing to something other than the first element of a distributed array would have to have undefined behaviour.
 
 Possible implementation:
 <pre highlight="c++">
-size_t distributed_array_size(auto const* const array) noexcept
-{
+size_t distributed_array_size(auto const* const array) noexcept {
 	// The size might be stored before the first element in memory.
 	// Note that this otherwise invalid cast exists only
 	// to illustrate a potential implementation strategy.
@@ -129,76 +204,41 @@ size_t distributed_array_size(auto const* const array) noexcept
 }
 </pre>
 
-## Ordering of distributed array elements ## {#array_ordering}
+If distributed arrays were given distinct types (see [[#design_declaration]]) the signature of this function could be changed to `size_t distributed_array_size(auto const(&array)[register])` and incorrect usage could be made ill-formed instead of producing undefined behaviour at runtime.
 
-- Non-inline elements of a distributed array defined within a single translation unit are ordered according to the order of their definitions.
+## Ordering of distributed array elements ## {#design_ordering}
+
+- Non-inline elements of a distributed array defined within a single translation unit are ordered according to the order of their definitions and stored contiguously.
 - Inline elements of a distributed array are ordered relative to other elements according to the order of their definitions, if that order is the same in all translation units. Otherwise the order is unspecified.
 - The relative ordering of sets of elements from different translation units is unspecified, but is the same for all distributed arrays. In particular this facilitates the definition of parallel distributed arrays with the same order of elements.
 
-## Dynamic linking ## {#dynamic_linking}
+## Non-trivial element types ## {#design_trivial}
 
-Any attempt to dynamically link together multiple distributed array definitions into a single array is obviously problematic in the presence of dynamic loading and unloading of libraries. On Windows where each DLL (Dynamic Link Library) is practically its own program, this is not a problem. On Linux the best solution might be for the dynamic linker to consider distributed array definitions for the same array declaration from two shared libraries to be in conflict with one another. With dynamic linking being out of scope for the standard, this issue should not have a major effect on the proposal.
+Accessing a distributed array forces initialisation of variables of static storage duration from all translation units contributing to the array. Order of initialisation of distributed array elements may be left entirely unspecified, except where relative ordering of the elements is specified. However specifying the order of initialisation to match the ordering of the elements should not impose any additional difficulty in implementation of the feature either, as the relative ordering of elements from different translation units is itself unspecified.
+
+## Dynamic linking ## {#implementation_dynamic}
+
+Any attempt to dynamically link together multiple distributed array definitions into a single array is obviously problematic in the presence of dynamic loading and unloading of libraries. On Windows where each DLL (Dynamic Link Library) is practically its own program, this is not a problem.
+
+On Linux and similar systems the best solution might be for the dynamic linker to consider distributed array definitions for the same array declaration from two shared libraries to be in conflict with one another. In other words, the set of distributed array definitions present when statically linking the shared library would produce a single regular array definition. The dynamic linker would never have to deal with any distributed array definitions. This matches the existing behaviour of linkers for those arrays already being used to implement other features (see [[#implementation]]).
+
+With dynamic linking being out of scope for the C++ standard, this issue should not have a major effect on the proposal.
 
 
 # Implementation experience # {#implementation}
 
-Existing linkers already support merging symbols into arrays from multiple translation units in order to implement static initialisers, thread local storage and exception handling. More work is needed to provide a prototype implementation or testimonials from compiler implementers regarding the implementability of this feature.
+Existing linkers already support merging symbols into arrays from multiple translation units in order to implement static initialisers, thread local storage and exception handling tables. More work is needed to provide a prototype implementation or testimonials from implementers regarding the feasibility of implementing of this feature however.
 
 
 # Examples # {#examples}
 
-These examples use the library function syntax to access the size of the distributed array. See [[#array_size_function]].
+These examples use the library function syntax to access the size of the distributed array. See [[#design_size_function]].
 
-## Comparison to static initialisers ## {#examples_comparison}
-
-<table>
-	<tr>
-		<th>Static intialisers</th>
-		<th>Distributed array</th>
-	</tr>
-	<tr>
-		<td>
-		<pre highlight="c++">
-std::vector&lt;int&gt;&amp; get_array_storage()
-{
-	static std::vector&lt;T&gt; vector;
-	return vector;
-}
-
-std::span&lt;int const&gt; get_array()
-{
-	return get_array_storage();
-}
-
-[[maybed_unused]]
-static char const elements_pusher = (
-	get_array_storage().push_back(value_0),
-	get_array_storage().push_back(value_1),
-	0 /* Value used to initialize char elements_pusher. */);
-		</pre>
-		</td>
-
-		<td>
-		<pre highlight="c++">
-extern int const array[];
-
-std::span&lt;int const&gt; get_array()
-{
-	return std::span(array, std::distributed_array_size(array));
-}
-
-__distributed_array(array)
-static int const elements[] = { value_0, value_1 };
-		</pre>
-		</td>
-	</tr>
-</table>
-
-## Unit test framework ## {#examples_unit_test}
+## Unit test framework ## {#examples_test}
 
 The example code is simplified for readability. A real unit test framework would likely use macros to hide any boilerplate code.
 
-### Framework header ### {#examples_unit_test_header}
+### Framework header ### {#examples_test_header}
 
 <pre highlight="c++">
 using test_case_callback = void();
@@ -207,31 +247,28 @@ using test_case_callback = void();
 extern test_case_callback* const test_cases[];
 </pre>
 
-### User test code ### {#examples_unit_test_user}
+### User test code ### {#examples_test_user}
 
 <pre highlight="c++">
 __distributed_array(test_cases)
 test_case_callback* const my_test_case = my_test_case_function_1;
 
 __distributed_array(test_cases)
-test_case_callback* const my_test_case_array[] =
-{
+test_case_callback* const my_test_case_array[] = {
 	my_test_case_function_2,
 	my_test_case_function_3,
 };
 </pre>
 
-### Framework source ### {#examples_unit_test_source}
+### Framework source ### {#examples_test_source}
 
 <pre highlight="c++">
-void run_unit_tests()
-{
+void run_unit_tests() {
 	test_case_callback* const* const test_data = ::test_cases;
 	size_t const test_count = std::distributed_array_size(test_data);
 	std::span const tests = std::span(test_data, test_count);
 
-	for (test_case_callback* const test : tests)
-	{
+	for (test_case_callback* const test : tests) {
 		test();
 	}
 }
