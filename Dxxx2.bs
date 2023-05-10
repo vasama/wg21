@@ -25,8 +25,8 @@ This feature was previously introduced in [[P2268R0]] under the name "link-time 
 Here is a quick comparison to static initialiser side effects, which seems to be the solution most often employed by users out in the field today:
 <table>
 	<tr>
-		<th>Static<br>intialisers</th>
-		<th>Distributed<br>array</th>
+		<th>Static intialisers</th>
+		<th>Distributed array</th>
 	</tr>
 	<tr>
 		<td>
