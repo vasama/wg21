@@ -18,7 +18,7 @@ It is often desirable to define sets of static objects in a distributed manner a
 
 Is this really worth the committee's time? I believe so. While the feature may seem novel, it is arguably standardising existing practice that is being widely used out in the field. In fact the facility being proposed already is already in use in all major C++ implementations as an implementation strategy for static initialisers, thread local storage and exception handling tables. This paper proposes to expose that existing facility to the programmer.
 
-This feature was previously introduced in [[P2268]] under the name "link-time arrays" with hopes of future standardisation.
+This feature was previously introduced in [[P2268R0]] under the name "link-time arrays" with hopes of future standardisation.
 
 ## Comparison to state of the art ## {#introduction_comparison}
 
@@ -30,7 +30,7 @@ Here is a quick comparison to static initialiser side effects, which seems to be
 	</tr>
 	<tr>
 		<td>
-		<pre highlight="c++">
+		<pre>
 std::vector&lt;int&gt;&amp; get_array_storage() {
 	static std::vector&lt;T&gt; vector;
 	return vector;
@@ -50,7 +50,7 @@ static char const elements_pusher = (
 		</pre>
 		</td>
 		<td>
-		<pre highlight="c++">
+		<pre>
 extern int const array[];
 
 std::span&lt;int const&gt; get_array() {
@@ -126,7 +126,7 @@ Outside of standard C++ there exist implementation specific methods to achieve t
 
 ## Declaring distributed arrays ## {#design_declaration}
 
-The current revision of this proposal works by providing definitions for unbounded array declarations (`extern T array[];`) through one or more distributed array definitions. This approach was chosen primarily to minimise impact on the existing standard. However introducing a new kind of declaration for distributed arrays is a viable alternative. The strawman syntax `extern T array[register]` was used in [[P2268]] for such declarations.
+The current revision of this proposal works by providing definitions for unbounded array declarations (`extern T array[];`) through one or more distributed array definitions. This approach was chosen primarily to minimise impact on the existing standard. However introducing a new kind of declaration for distributed arrays is a viable alternative. The strawman syntax `extern T array[register]` was used in [[P2268R0]] for such declarations.
 
 ## Distributed array type ## {#design_type}
 
@@ -148,7 +148,7 @@ This proposal uses the strawman syntax `__distributed_array(A)` to specify that 
 Given the declaration `extern cv T A[];`, `__distributed_array(A)` may be applied to any namespace scope variable or static member variable declaration `D` with static storage duration, provided that `D` declares a variable of type `cv T` or an array with element type `cv T`. If `A` is declared `constinit`, `D` must be declared `constinit`. If `A` is declared `const`, `D` may be declared `constexpr`.
 
 Example:
-<pre highlight="c++">
+<pre>
 extern int const A[];
 
 __distributed_array(A)
@@ -166,7 +166,7 @@ There are a number of alternative approaches for exposing the size of the distri
 
 ### `sizeof` operator ### {#design_size_sizeof}
 
-[[P2268]] put forth the option of defining `sizeof` on distributed arrays as a non-constant-expression. This represents a clear departure from the existing behaviour of the `sizeof` operator. Additionally the size in bytes of the array is generally less useful than the number of elements in the array. Therefore this solution is not recommended by this proposal.
+[[P2268R0]] put forth the option of defining `sizeof` on distributed arrays as a non-constant-expression. This represents a clear departure from the existing behaviour of the `sizeof` operator. Additionally the size in bytes of the array is generally less useful than the number of elements in the array. Therefore this solution is not recommended by this proposal.
 
 ### Function-like operator ### {#design_size_operator}
 
@@ -179,7 +179,7 @@ Some alternative syntaxes which avoid the introduction of new keywords include `
 A function template with a const array reference non-type template parameter can likely provide implementation flexibility and safety equal or near equal to that of an operator, but with potentially slightly greater user flexibility. The two may end up being equal in both flexibility and safety however, in which case the library template might be the preferred option.
 
 Possible implementation:
-<pre highlight="c++">
+<pre>
 template&lt;auto const&amp; Array&gt;
 size_t distributed_array_size() noexcept {
 	// The size might be calculated by subtraction of
@@ -195,7 +195,7 @@ size_t distributed_array_size() noexcept {
 A function template with a pointer parameter can provide the greatest user flexibility at the cost of lesser implementation flexibility and safety. Calling this function with a pointer pointing to something other than the first element of a distributed array would have to have undefined behaviour.
 
 Possible implementation:
-<pre highlight="c++">
+<pre>
 size_t distributed_array_size(auto const* const array) noexcept {
 	// The size might be stored before the first element in memory.
 	// Note that this otherwise invalid cast exists only
@@ -240,7 +240,7 @@ The example code is simplified for readability. A real unit test framework would
 
 ### Framework header ### {#examples_test_header}
 
-<pre highlight="c++">
+<pre>
 using test_case_callback = void();
 
 // Array of test case callbacks.
@@ -249,7 +249,7 @@ extern test_case_callback* const test_cases[];
 
 ### User test code ### {#examples_test_user}
 
-<pre highlight="c++">
+<pre>
 __distributed_array(test_cases)
 test_case_callback* const my_test_case = my_test_case_function_1;
 
@@ -262,7 +262,7 @@ test_case_callback* const my_test_case_array[] = {
 
 ### Framework source ### {#examples_test_source}
 
-<pre highlight="c++">
+<pre>
 void run_unit_tests() {
 	test_case_callback* const* const test_data = ::test_cases;
 	size_t const test_count = std::distributed_array_size(test_data);
