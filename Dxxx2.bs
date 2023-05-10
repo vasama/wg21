@@ -76,14 +76,14 @@ static int const elements[] = {
 
 ## Examples of existing usage in C and C++ ## {#existing_ccpp}
 
-- Test cases in all major C++ unit test frameworks (<a href="https://github.com/catchorg/Catch2/blob/0dc82e08dfec25faf6c6c145f3592984db7276cc/src/catch2/internal/catch_test_registry.hpp">Catch2 at GitHub</a>)
+- Test cases in all major C++ unit test frameworks (Catch2 on <a href="https://github.com/catchorg/Catch2/blob/0dc82e08dfec25faf6c6c145f3592984db7276cc/src/catch2/internal/catch_test_registry.hpp">GitHub</a>)
 - Optimisation passes in LLVM (<a href="https://github.com/llvm/llvm-project/blob/d526e2ec957fc7bc31d7be3670cd1673c2b4389b/llvm/include/llvm/PassSupport.h">GitHub</a>)
-- Type information in Unreal Engine (Source available on GitHub through <a href="https://www.unrealengine.com/en-US/ue-on-github">Epic Games</a>)
+- Type information in Unreal Engine (Source available on <a href="https://github.com/EpicGames/UnrealEngine/blob/5ca9da84c694c6eee288c30a547fcaa1a40aed9b/Engine/Source/Runtime/CoreUObject/Public/UObject/UObjectBase.h">GitHub</a> through <a href="https://www.unrealengine.com/en-US/ue-on-github">Epic Games</a>)
 - Type information in Boost.Serialization (<a href="https://github.com/boostorg/serialization/blob/3f322d4adc3c88a667751ad66ce19217a3bba1f9/include/boost/serialization/void_cast.hpp">GitHub</a>)
 - Multiple types of objects in Qt Framework (<a href="https://github.com/qt/qtbase/blob/278acae61146fae4811bc3643516ff41cdff24fc/src/corelib/kernel/qcoreapplication.h">GitHub</a>)
 - Kernels and operations in TensorFlow (<a href="https://github.com/tensorflow/tensorflow/blob/5a06771ea43a1574a3f9a1a5673b339aa4076f6f/tensorflow/core/framework/op.h">GitHub</a>)
 - Generators in Apache Thrift (<a href="https://github.com/apache/thrift/blob/3880a09565a9a1dad028b3679746eafac268c819/compiler/cpp/src/thrift/generate/t_generator_registry.h">GitHub</a>)
-- Initialisation callbacks in the Linux kernel (<a href="https://github.com/torvalds/linux/blob/16a8829130ca22666ac6236178a6233208d425c3/include/linux/init.h">GitHub</a>)
+- Initialisation callbacks in the Linux kernel (C language, freestanding) (<a href="https://github.com/torvalds/linux/blob/16a8829130ca22666ac6236178a6233208d425c3/include/linux/init.h">GitHub</a>)
 - Multiple tables defined using linker sections in iPXE (C language, freestanding) (<a href="https://github.com/ipxe/ipxe/blob/03eea19c19b52851002654c2818b765d4aa42894/src/include/ipxe/tables.h">GitHub</a>)
 - The author is aware of more usage in proprietary code bases.
 
@@ -119,7 +119,7 @@ In standard C++ the only way to achieve the desired result is by building the se
 
 ## Linker sections ## {#alternatives_linker}
 
-Outside of standard C++ there exist implementation specific methods to achieve the desired result using linker sections. The variables making up the array elements are all placed into a single linker section using implementation specific pragmas, attributes or linker scripts. The data is accessed at runtime using special symbols placed by the linker at the beginning and end of the section. This is also how static initialisers themselves are generally implemented. The problems with relying on non-portable linker based solutions should be obvious. Apart from the non-portability, this solution also offers poor type safety as any kind of declaration may be placed into the section.
+Outside of standard C++ there exist implementation specific methods to achieve the desired result using linker sections. The variables making up the array elements are all placed into a single linker section using implementation specific pragmas, attributes or linker scripts. The data is accessed at runtime using special symbols placed by the linker at the beginning and end of the section. This is also how static initialisers themselves are generally implemented. The problems with relying on non-portable linker based solutions should be obvious. Apart from the non-portability, this solution also offers poor type safety as variables of differing types may be placed into the section.
 
 
 # Design considerations # {#design}
