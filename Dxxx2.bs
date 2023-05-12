@@ -137,17 +137,15 @@ A new kind of array declaration would be most powerful if combined with a new ki
 
 Such new distributed array types would behave similarly to the existing unbounded array types, with the addition of a mechanism for querying the size of a distributed array object (see [[#design_size]]).
 
-## Empty distributed arrays ## {#design_empty}
-
-More so than in the case of regular arrays, it often makes sense to define and use empty distributed arrays. For example, whether the program should perform initialisation steps provided through a distributed array may depend on its build-time configuration. If empty distributed arrays were not allowed, it would be difficult to detect and handle the case where no initialisation was needed.
-
 ## Defining elements of distributed arrays ## {#design_definition}
 
 This proposal uses the strawman syntax `__distributed_array(A)` to specify that a variable definition should also act as a partial definition for a previously declared array `A`. All such partial definitions are merged to form a definition for the array `A`. This definition would conflict with any other definition of `A` which is not a distributed array definition.
 
 Given the declaration `extern cv T A[];`, `__distributed_array(A)` may be applied to any namespace scope variable or static member variable declaration `D` with static storage duration, provided that `D` declares a variable of type `cv T` or an array with element type `cv T`. If `A` is declared `constinit`, `D` must be declared `constinit`. If `A` is declared `const`, `D` may be declared `constexpr`.
 
-Example:
+It is notable that this proposal makes it possible for the first time in standard C++ to access a global object through two different symbols. There are some use cases for this: consider a graph of initialisation callbacks where nodes refer to other nodes representing dependencies. Those use cases can generally be solved in other ways using additional indirection. The more important reason for this choice however, is distributed array element templates. In order to contribute to a distributed array through a template, a name is naturally required for that template. Additionally this mechanism maps very directly to how linkers actually work in practice. Existing implementations do currently assume that two distinct global variables declared `extern int a;` and `extern int b[];` do not alias one another. This is problematic and may be another reason to introduce new distributed array declarations (see [[#design_declaration]]).
+
+Examples:
 <pre>
 extern int const A[];
 
@@ -156,23 +154,34 @@ static int const E1 = 42;
 
 __distributed_array(A)
 constexpr int E2[] = { 1, 2 };
+
+// The template E3 can be used to introduce multiple elements into A.
+template<typename T>
+__distributed_array(A)
+constexpr int E3 = T::some_value;
 </pre>
 
 In existing usage this pattern is often known as "registration" with types such as `thing_registry` or `thing_registrar` being commonly used alongside macros such as `REGISTER_THING`. For this reason repurposing the now defunct `register` keyword in place of `__distributed_array` might be a good fit.
 
+## Empty distributed arrays ## {#design_empty}
+
+More so than in the case of regular arrays, it often makes sense to define and use empty distributed arrays. For example, whether the program should perform any initialisation steps provided through a distributed array may depend on its build-time configuration. If empty distributed arrays were not allowed, it would be difficult to detect and handle the case where no initialisation was needed.
+
+If distributed arrays were given new declaration syntax (see [[#design_declaration]]), then a declaration such as `T array[register];` (without `extern`) could act as an empty default definition for the distributed array.
+
 ## Accessing the size of the distributed array ## {#design_size}
 
-There are a number of alternative approaches for exposing the size of the distributed array, each with its own pros and cons:
+There are a number of alternative approaches for exposing the size of the distributed array, each with its own pros and cons.
 
 ### `sizeof` operator ### {#design_size_sizeof}
 
-[[P2268R0]] put forth the option of defining `sizeof` on distributed arrays as a non-constant-expression. This represents a clear departure from the existing behaviour of the `sizeof` operator. Additionally the size in bytes of the array is generally less useful than the number of elements in the array. Therefore this solution is not recommended by this proposal.
+[[P2268R0]] put forth the option of defining `sizeof` on distributed arrays as a non-constant-expression. This represents a clear departure from the existing behaviour of the `sizeof` operator. Additionally the size in bytes of the array is generally less useful than the number of elements in the array. Therefore this proposal does not recommend the use of the `sizeof` operator.
 
 ### Function-like operator ### {#design_size_operator}
 
 An operator (strawman syntax `__distributed_array_size(A)`) provides the greatest implementation flexibility and safety, but the least user flexibility. The implementation is the least limited in its choice of implementation strategy, and programs using the operator improperly can be made ill formed.
 
-Some alternative syntaxes which avoid the introduction of new keywords include `sizeof register(A)` and `operator register(A)`. Neither of these syntaxes seems very appealing however.
+Some alternative syntaxes which avoid the introduction of new keywords include `sizeof register(A)` and `operator register(A)`.
 
 ### Library template ### {#design_size_template}
 
@@ -204,7 +213,7 @@ size_t distributed_array_size(auto const* const array) noexcept {
 }
 </pre>
 
-If distributed arrays were given distinct types (see [[#design_declaration]]) the signature of this function could be changed to `size_t distributed_array_size(auto const(&array)[register])` and incorrect usage could be made ill-formed instead of producing undefined behaviour at runtime.
+If distributed arrays were given distinct types (see [[#design_type]]) the signature of this function could be changed to `size_t distributed_array_size(auto const(&array)[register])` and incorrect usage could be made ill-formed instead of producing undefined behaviour at runtime.
 
 ## Ordering of distributed array elements ## {#design_ordering}
 
@@ -214,7 +223,11 @@ If distributed arrays were given distinct types (see [[#design_declaration]]) th
 
 ## Non-trivial element types ## {#design_trivial}
 
-Accessing a distributed array forces initialisation of variables of static storage duration from all translation units contributing to the array. Order of initialisation of distributed array elements may be left entirely unspecified, except where relative ordering of the elements is specified. However specifying the order of initialisation to match the ordering of the elements should not impose any additional difficulty in implementation of the feature either, as the relative ordering of elements from different translation units is itself unspecified.
+Accessing a distributed array forces initialisation of variables of static storage duration from all translation units contributing to the array. Order of initialisation of distributed array elements may be left entirely unspecified, except where relative ordering of the elements is specified. However specifying the order of initialisation to match the ordering of the elements should not impose any additional difficulty in implementation of the feature either, as the relative ordering of elements from different translation units is itself unspecified. The initialisation of distributed array elements may be interleaved with initialisation of other non-trivial objects with static storage duration.
+
+## Thread storage duration ## {#design_thread}
+
+Distributed arrays with thread storage duration may have some interesting use cases, but they are not currently being proposed. Any distributed array definition declared `thread_local` is therefore ill-formed.
 
 ## Dynamic linking ## {#implementation_dynamic}
 
