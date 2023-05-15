@@ -1,11 +1,11 @@
 <pre class='metadata'>
 Title: Distributed Arrays
-Shortname: Dxxx2
+Shortname: P2889
 Revision: 0
-Status: D
+Status: P
 Group: WG21
 Audience: EWG
-Abstract: A new method of defining arrays in namespace scope by merging definitions from multiple translation units.
+Abstract: A new method of defining global arrays by merging definitions from multiple translation units.
 
 Repository: vasama/wg21
 Local Boilerplate: computed-metadata yes
