@@ -156,7 +156,7 @@ __distributed_array(A)
 constexpr int E2[] = { 1, 2 };
 
 // The template E3 can be used to introduce multiple elements into A.
-template<typename T>
+template&lt;typename T&gt;
 __distributed_array(A)
 constexpr int E3 = T::some_value;
 </pre>
