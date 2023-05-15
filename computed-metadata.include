@@ -1,9 +1,10 @@
 {
+	"Shortname": "[STATUS][PAPERNUMBER]",
 	"Editor": "Lauri Vasama, wg21@vasama.org",
 	"URL": "[REPOSITORYURL]",
 	"Metadata Include": "This version off",
-	"!Current draft": "<a href=\"https://vasama.github.io/wg21/[SHORTNAME].html\">vasama.github.io/wg21/[SHORTNAME]Rx.html</a>",
-	"!Current draft source": "<a href=\"[REPOSITORYURL]/blob/main/[SHORTNAME].bs\">github.com/[REPOSITORY]/blob/main/[SHORTNAME].bs</a>",
+	"!Current draft": "<a href=\"https://vasama.github.io/wg21/D[PAPERNUMBER].html\">vasama.github.io/wg21/D[PAPERNUMBER].html</a>",
+	"!Current draft source": "<a href=\"[REPOSITORYURL]/blob/main/D[PAPERNUMBER].bs\">github.com/[REPOSITORY]/blob/main/D[PAPERNUMBER].bs</a>",
 
 	"Text Macro": "CPP https://eel.is/c++draft",
 	"Complain About": "accidental-2119 yes, missing-example-ids yes",

@@ -1,6 +1,6 @@
 <pre class='metadata'>
+Text Macro: PAPERNUMBER xxx1
 Title: Required Attributes
-Shortname: Dxxx1
 Revision: 0
 Status: D
 Group: WG21
