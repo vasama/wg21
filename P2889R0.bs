@@ -1,6 +1,6 @@
 <pre class='metadata'>
+Text Macro: PAPERNUMBER 2889
 Title: Distributed Arrays
-Shortname: P2889
 Revision: 0
 Status: P
 Group: WG21
