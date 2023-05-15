@@ -217,7 +217,7 @@ If distributed arrays were given distinct types (see [[#design_type]]) the signa
 
 ## Ordering of distributed array elements ## {#design_ordering}
 
-- Non-inline elements of a distributed array defined within a single translation unit are ordered according to the order of their definitions and stored contiguously.
+- Non-inline elements of a distributed array defined within a single translation unit are ordered according to the order of their definitions.
 - Inline elements of a distributed array are ordered relative to other elements according to the order of their definitions, if that order is the same in all translation units. Otherwise the order is unspecified.
 - The relative ordering of sets of elements from different translation units is unspecified, but is the same for all distributed arrays. In particular this facilitates the definition of parallel distributed arrays with the same order of elements.
 
