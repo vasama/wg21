@@ -1,0 +1,88 @@
+<pre class='metadata'>
+Text Macro: PAPERNUMBER 2986
+Title: Generic Function Pointer
+Revision: 0
+Status: D
+Group: WG21
+Audience: EWG
+Abstract: We propose a new type for storing function pointers of unknown type.
+
+Repository: vasama/wg21
+Local Boilerplate: computed-metadata yes
+</pre>
+
+# Introduction # {#introduction}
+
+Since C++ was first standardised, `void*` has served to erase the types of pointers to objects. We propose to introduce an equivalent new pointer type for erasing the types of pointers to functions.
+
+Type erasure of functions is known to be widely useful. This is exemplified by the existence of the standard library templates `std::function`, `std::move_only_function`, and the `std::function_ref` now accepted for C++26.
+
+## Existing alternatives ## {#introduction_alternatives}
+
+C++ offers two existing solutions for type erasure of function pointers, each with its own downsides.
+
+Neither of these existing solutions is available during constant evaluation. With [[!P2738R1]] now accepted for C++26, they seem especially lacking in contrast.
+
+[[P0792R14]] notably lacks constexpr support for both invocation and construction from a function pointer. Neither is implementable purely in library due to the lack of a constexpr type erasure mechanism for function pointers.
+
+### Conversion to `void*` ### {#introduction_void_ptr}
+
+Conversions between pointers to functions and pointers to objects are conditionally supported. This solution is therefore not portable. Mandating support for this conversion may exclude some exotic platforms where pointers to functions and pointers to objects have different storage requirements. For this reason we do not consider this to be a viable solution.
+
+### Conversion to `R(*)()` ### {#introduction_func_ptr}
+
+Conversions between different types of pointers to functions are allowed and converting back to the original type yields the original value. There are two downsides to this conversion:
+* The conversion requires the use of a reinterpret cast, which is not a constant expression in either direction. Making reinterpret cast expressions constant expressions would represent a much larger change to the language.
+* The user must make a choice of some concrete function pointer type to represent a type erased function pointer (`void(*)()` is an obvious choice). If care is not taken, such converted pointers will remain invocable which would lead to undefined behaviour. A better but not as obvious choice is `void(*)(incomplete)`, where `incomplete` is an incomplete class type.
+
+For these reasons we do not consider this to be a viable solution.
+
+# Design # {#design}
+
+Introduce a new core language type, the <i>generic function pointer type</i> under the library name `std::function_ptr_t`. This type is a function pointer type behaving similarly to the void pointer:
+* Any non-generic function pointer is implicitly convertible to a generic function pointer.
+* A generic function pointer is explicitly convertible to any non-generic function pointer type using `static_cast`.
+* Unlike a non-generic function pointer, a generic function pointer can neither be invoked nor dereferenced.
+* There is no generic function reference type.
+
+Introduce the alias `std::function_ptr_t` for this type in `<cstddef>`.
+
+# C compatibility # {#c_compatibility}
+
+<a href="https://www.open-std.org/jtc1/sc22/wg14/www/docs/n2230.htm">[WG14 N2230]</a> Proposed a similar type under the name `funcptr_t`, and while WG14 expressed interest in such a type, the design presented in that proposal did not gain consensus. The author has not since followed up on that paper.
+
+We intend to propose the introduction of a C++ compatible `function_ptr_t` type to WG14.
+
+
+# Proposed Wording (incomplete) # {#wording}
+
+Add a new clause to <a href="[CPP]/basic.fundamental">[basic.fundamental]</a>:
+
+The type named by std::function_ptr_t is called the <i>generic function pointer type</i>.
+A value of that type can be used to point to functions of unknown type.
+Such a pointer shall be able to hold any function pointer.
+
+
+Add a new clause to <a href="[CPP]/conv.fctptr">[conv.fctptr]</a>:
+
+<blockquote>
+A prvalue of type "pointer to function" can be converted to a prvalue of type std::function_ptr_t. The pointer value is unchanged by this conversion.
+</blockquote>
+
+
+Add a new clause to <a href="[CPP]/expr.static.cast">[expr.static.cast]</a>:
+
+<blockquote>
+A prvalue of type std::function_ptr_t can be converted to a prvalue of type "pointer to function". The pointer value is unchanged by this conversion.
+</blockquote>
+
+
+Add a new type alias to <a href="[CPP]/cstddef.syn">[cstddef.syn]</a>:
+
+<blockquote>
+<pre>
+namespace std {
+  using function_ptr_t = <i>generic function pointer type</i>; // freestanding
+}
+</pre>
+</blockquote>
