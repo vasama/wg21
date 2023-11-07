@@ -11,9 +11,14 @@ Repository: vasama/wg21
 Local Boilerplate: computed-metadata yes
 </pre>
 
+# Changelog # {#changelog}
+
+## Revision 1 ## {#changelog_r1}
+  * A generic function pointer pointing to a function with noexcept specification can be converted to a non-generic function pointer without noexcept specification.
+
 # Motivation # {#motivation}
 
-Since C++ was first standardised, `void*` has served to erase the types of pointers to objects. type-erasure of functions, as well as type-erasure in general, is known to be widely useful. This is exemplified by the existence of the standard library templates `std::function`, `std::move_only_function`, and the `std::function_ref` now accepted for C++26, as well the existing language mechanisms for directly type-erasing function pointers (see [[#alternatives]]).
+Since C++ was first standardised, `void*` has served to erase the types of pointers to objects. Type-erasure of functions, as well as type-erasure in general, is known to be widely useful. This is exemplified by the existence of the standard library templates `std::function`, `std::move_only_function`, and the `std::function_ref` now accepted for C++26, as well the existing language mechanisms for directly type-erasing function pointers (see [[#alternatives]]).
 
 None of the currently available mechanisms for type-erasure of function pointers are available during constant evaluation however. With [[P2738R1]] now accepted for C++26, and bringing with it constexpr conversion from `void*` back to the original type, these existing solutions seem especially lacking in comparison.
 
@@ -21,13 +26,13 @@ None of the currently available mechanisms for type-erasure of function pointers
 
 [[P0792R14]] introducing `function_ref`, a type-erased callable reference, has been accepted for C++26.
 `function_ref` notably lacks constexpr support for invocation and for construction from a function pointer:
-<pre>
+<xmp>
 // [func.wrap.ref.ctor], constructors and assignment operators
 template<class F> function_ref(F*) noexcept;
 
 // [func.wrap.ref.inv], invocation
 R operator()(ArgTypes...) const noexcept(noex);
-</pre>
+</xmp>
 
 Neither of these operations is implementable in constexpr due to the lack of a constexpr type-erasure mechanism for function pointers. From <a href="[CPP]/func.wrap.ref.class">[func.wrap.ref.class]</a>:
 <blockquote>
@@ -38,7 +43,7 @@ C++ currently offers no way to implement the described `BoundEntityType` for use
 The reference implementation for `function_ref` can be found at <a href="https://github.com/zhihaoy/nontype_functional/tree/v1.0.1">zhihaoy/nontype_functional@v1.0.1</a>.
 
 Here is the definition of `BoundEntityType` (`storage`) from the reference implementation:
-<pre>
+<xmp>
 struct _function_ref_base
 {
     union storage
@@ -49,31 +54,31 @@ struct _function_ref_base
 
         constexpr storage() noexcept = default;
 
-        template&lt;class T&gt; requires std::is_object_v&lt;T&gt;
+        template<class T> requires std::is_object_v<T>
         constexpr explicit storage(T *p) noexcept : p_(p)
         {}
 
-        template&lt;class T&gt; requires std::is_object_v&lt;T&gt;
+        template<class T> requires std::is_object_v<T>
         constexpr explicit storage(T const *p) noexcept : cp_(p)
         {}
 
-        template&lt;class T&gt; requires std::is_function_v&lt;T&gt;
+        template<class T> requires std::is_function_v<T>
         constexpr explicit storage(T *p) noexcept
-            : fp_(reinterpret_cast&lt;decltype(fp_)&gt;(p))
+            : fp_(reinterpret_cast<decltype(fp_)>(p))
         {}
     };
 
-    template&lt;class T&gt; constexpr static auto get(storage obj)
+    template<class T> constexpr static auto get(storage obj)
     {
-        if constexpr (std::is_const_v&lt;T&gt;)
-            return static_cast&lt;T *&gt;(obj.cp_);
-        else if constexpr (std::is_object_v&lt;T&gt;)
-            return static_cast&lt;T *&gt;(obj.p_);
+        if constexpr (std::is_const_v<T>)
+            return static_cast<T *>(obj.cp_);
+        else if constexpr (std::is_object_v<T>)
+            return static_cast<T *>(obj.p_);
         else
-            return reinterpret_cast&lt;T *&gt;(obj.fp_);
+            return reinterpret_cast<T *>(obj.fp_);
     }
 };
-</pre>
+</xmp>
 Note that while the function pointer constructor and the function `get` are both marked `constexpr`, due to the use of `reinterpret_cast`, the former can never result in a constant expression and the latter can only do so when `T` is not a function type.
 
 # Existing alternatives # {#alternatives}
@@ -84,16 +89,16 @@ C++ offers two existing solutions for type-erasure of function pointers, each wi
 
 Conversions between pointers to functions and pointers to objects are conditionally supported:
 
-<pre>
+<xmp>
 void print_int(int value) {
     printf("%d\n", value);
 }
 
 int main() {
-    auto fp = reinterpret_cast&lt;void*&gt;(print_int);
-    reinterpret_cast&lt;void(*)(int)&gt;(fp)(42);
+    auto fp = reinterpret_cast<void*>(print_int);
+    reinterpret_cast<void(*)(int)>(fp)(42);
 }
-</pre>
+</xmp>
 
 The first downside is obvious: This solution is not portable. Requiring unconditional support for this conversion may exclude some exotic platforms where pointers to functions and pointers to objects have different storage requirements. It may also introduce difficulties for implementation of pointer comparisons on Harvard architectures, where the same bit patterns may be reused for both pointers pointing to data and code.
 
@@ -107,17 +112,17 @@ For these reason we do not consider this to be a viable solution.
 
 Conversions between different types of pointers to functions are allowed and converting back to the original type yields the original value:
 
-<pre>
+<xmp>
 void print_int(int value) {
     printf("%d\n", value);
 }
 
 int main() {
     using fp_t = void(*)();
-    auto fp = reinterpret_cast&lt;fp_t&gt;(print_int);
-    reinterpret_cast&lt;void(*)(int)&gt;(fp)(42);
+    auto fp = reinterpret_cast<fp_t>(print_int);
+    reinterpret_cast<void(*)(int)>(fp)(42);
 }
-</pre>
+</xmp>
 
 This conversion requires the use of a reinterpret cast, which is not a constant expression in either direction. Making reinterpret cast expressions constant expressions would arguably represent a larger change to the language than what is proposed by this paper.
 
@@ -130,21 +135,21 @@ This solution could be improved upon by making the reinterpret cast a constant e
 Introduce a new core language type, the <i>generic function pointer type</i> under the library name `std::function_ptr_t`.
 This type is a function pointer type behaving similarly to the void pointer:
   * `nullptr_t` is implicitly convertible to a generic function pointer.
-    This conversion is a constant expression
-    <pre>
+    This conversion is a constant expression.
+    <xmp>
     constexpr std::function_ptr_t fp_0 = nullptr;
-    </pre>
+    </xmp>
   * Any non-generic function pointer is implicitly convertible to a generic function pointer.
     This conversion is a constant expression.
-    <pre>
+    <xmp>
     constexpr int f() {
       return 42;
     }
     constexpr std::function_ptr_t fp_f = f;
-    </pre>
+    </xmp>
   * Two generic function pointers can be compared for equality.
     This comparison is a constant expression.
-    <pre>
+    <xmp>
     static_assert( fp_0 == nullptr );
     static_assert( fp_f != nullptr );
   
@@ -153,19 +158,27 @@ This type is a function pointer type behaving similarly to the void pointer:
     }
     static_assert( fp_f == f );
     static_assert( fp_f != g );
-    </pre>
+    </xmp>
   * A generic function pointer `fp` is explicitly convertible to a non-generic function pointer type `F*` using `static_cast`.
-    This conversion is a constant expression if the type of the function pointed to by `fp` is exactly `F`.
-    <pre>
-    constexpr auto p_f = static_cast&lt;int(*)()&gt;(fp_f);
+    This conversion is a constant expression if the type of the function pointed to by `fp` is exactly `F` or `F` with `noexcept` specification.
+    <xmp>
+    constexpr auto p_f = static_cast<int(*)()>(fp_f);
     static_assert( p_f == f );
     static_assert( p_f() == 42 );
-    </pre>
+
+    constexpr int h() noexcept {
+      return 123;
+    }
+    constexpr std::function_ptr_t fp_h = h;
+    constexpr auto p_h = static_cast<int(*)()>(fp_h);
+    static_assert( p_h == h );
+    static_assert( p_h() == 123 );
+    </xmp>
   * Unlike a non-generic function pointer, a generic function pointer can neither be invoked nor dereferenced.
-    <pre>
+    <xmp>
     fp_f(); // ill-formed
     *fp_f; // ill-formed
-    </pre>
+    </xmp>
 
 The alias `std::function_ptr_t` for this type is introduced in the `<cstddef>` header.
 
@@ -246,10 +259,8 @@ A prvalue of type `std::function_ptr_t` can be converted to a prvalue of type "p
 
 Add a new type alias to <a href="[CPP]/cstddef.syn">[cstddef.syn]</a>:
 
-<blockquote>
 <pre>
 namespace std {
   using function_ptr_t = <i>generic function pointer type</i>; // freestanding
 }
 </pre>
-</blockquote>
