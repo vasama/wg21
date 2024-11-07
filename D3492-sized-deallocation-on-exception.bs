@@ -1,5 +1,5 @@
 <pre class='metadata'>
-Text Macro: PAPERNUMBER xxx6
+Text Macro: PAPERNUMBER 3492
 Title: Sized deallocation for placement new
 Revision: 0
 Status: D
