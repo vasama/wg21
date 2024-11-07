@@ -1,0 +1,110 @@
+<pre class='metadata'>
+Text Macro: PAPERNUMBER xxx6
+Title: Sized deallocation for placement new
+Revision: 0
+Status: D
+Group: WG21
+Audience: EWGI, EWG
+Abstract: Permit the selection of a sized placement deallocation function in new expressions.
+
+Repository: vasama/wg21
+Local Boilerplate: computed-metadata yes
+</pre>
+
+# Introduction # {#introduction}
+
+## Usual new and delete expressions ## {#introduction_new_delete}
+
+Note:For simplicity these examples ignore any class specific allocation or deallocation functions.
+
+Given the new expression `new T`, the compiler selects an allocation function matching one of the following calls:
+* <code>operator new(sizeof(T))</code>
+* <code>operator new(sizeof(T), std::align_val_t(alignof(T)))</code>
+
+Given the delete expression `delete t`, the compiler selects a deallocation function overload matching one of the following calls:
+* <code>operator delete(<i>storage-ptr</i>)</code>
+* <code>operator delete(<i>storage-ptr</i>, std::align_val_t(alignof(T)))</code>
+* <code>operator delete(<i>storage-ptr</i>, sizeof(T))</code>
+* <code>operator delete(<i>storage-ptr</i>, sizeof(T), std::align_val_t(alignof(T)))</code>
+
+When deallocation functions both with and without size parameters are present, it is unspecified which is selected.
+
+Note:In both cases the preference for passing an alignment value depends on whether `T` has new-extended alignment.
+
+Going back to the case of `new T`; if the initialisation of the `T` object were to throw an exception, a *matching* deallocation function is used to deallocate the previously allocated storage. Currently the wording on this is not very clear, but it can be assumed that the intent is to use the deallocation function selected by `delete T`. That might mean selecting a deallocation function not exactly matching the parameters of the used allocation function. For example:
+* <code>operator new(sizeof(T))</code>
+* <code>operator delete(<i>storage-ptr</i>, sizeof(T))</code><br>
+	Here an additional size parameter is passed to the deallocation function.
+
+## Placement new expressions ## {#introduction_placement_new}
+
+Given the placement new expression `new (args...) T`, the compiler selects an allocation function matching one of the following calls:
+* <code>operator new(sizeof(T), args...)</code>
+* <code>operator new(sizeof(T), std::align_val_t(alignof(T)), args...)</code>
+
+If the initialisation of the `T` object were to throw an exception now, the storage may be deallocated *if* a matching placement deallocation function is found. In this case a deallocation function matches the allocation function if its parameters, after parameter transformations, are all identical to the parameters of the selected placement allocation function, except for the first parameter which is to be `void*`. It is notable that in the case of failed placement new expressions, no deallocation function containing a size parameter will ever be selected. This is unfortunate for the same reasons explained in [[N3778]] which introduced the global sized deallocation functions.
+
+Furthermore, unlike global deallocation functions, placement allocation functions are very intentionally provided context for the allocation. Since user allocation schemes are much less constrained than the global allocation and deallocation functions, it is conceivable that a user allocator providing a placement allocation function for ease use might be unable to deallocate the memory without being explicitly provided the size of the allocation. In fact this proposal was created after encountering just that scenario.
+
+Note:The terms placement allocation function and placement deallocation function are not currently defined, but we take them to mean that set of allocation functions which are only ever selected by placement new expressions and not by usual new expressions, and the matching set of deallocation functions. See [[CWG2592]].
+
+# Proposal # {#proposal}
+
+We propose to permit placement new expressions to use two partially matching deallocation functions:
+* <code>operator delete(<i>storage-ptr</i>, std::size_val_t(sizeof(T)), args...)</code>
+* <code>operator delete(<i>storage-ptr</i>, std::size_val_t(sizeof(T)), std::align_val_t(alignof(T)), args...)</code>
+
+For the backwards compatibility reasons explained in [[P0035R4]], which introduced `std::align_val_t`, we propose to use a similar type with the name `std::size_val_t` for passing the size of the allocation. This should significantly reduce the likelihood of accidentally using any existing but unrelated placement deallocation functions.
+
+<xmp>
+namespace std {
+	enum class size_val_t : size_t {};
+}
+</xmp>
+
+The new overloads, if available, should be used in preference to those existing ones without size parameters. This is because a deallocation function with access to the size is no less efficient than one without, and thanks to the new `std::size_val_t`, no existing code should have its meaning changed.
+
+# Alternatives # {#alternatives}
+
+## Library function ## {#alternatives_function}
+
+Any discussion of placement new and its deallocation behaviour raises the obvious question of placement deletion. Suppose one uses the placement new syntax to create objects of dynamic storage duration using some custom allocator: `new (alloc) T`. How does one then delete those objects? If explicit deletion is needed at all, most likely that is achieved using a function template taking the allocator and a pointer to the object to be deleted:
+
+<xmp>
+template<typename Allocator, typename T>
+void delete_via(Allocator const& allocator, T* const ptr)
+{
+	std::destroy_at(ptr);
+	allocator.deallocate(ptr, sizeof(T));
+}
+
+delete_via(alloc, new (alloc) T);
+</xmp>
+
+Or possibly by a more general function template implementing placement delete via calls to placement deallocation functions.
+
+**Why then, should we not also use a function template for the object creation instead of placement new?**
+
+<xmp>
+template<typename T, typename Allocator, typename... Args>
+	requires std::constructible_from<T, Args...>
+T* new_via(Allocator const& allocator, Args&&... args);
+
+// new (alloc) T(a, b, c);
+new_via<T>(alloc, a, b, c);
+</xmp>
+
+That is indeed possible and allows one to solve the problem in library, but there are some major drawbacks:
+
+1. **Syntax**<br>
+	The placement new syntax provides direct syntactic access to the object initialisation, which has real benefits:
+	* An `emplace`-like function tends to lose IDE hints pertaining to the constructors of the type `T` being initialised.
+	* Directly initialising the object allows for more expressive forms of initialisation, such as designated initialisation:
+		<xmp>new (alloc) T{ .a = x, .b = y }</xmp>
+	* The initialisation of `T` requires access to its constructors. If those constructors are not publicly accessible, `new_via` does not have access to them, unless befriended. Direct use of placement new has no such limitation.
+
+	These things can still of course be achieved in library using a lambda, but this further degrades the user experience:
+	<xmp>new_from_result_of(alloc, [&]() { return T{ .a = x, .b = y }; })</xmp>
+	<br>
+2. **Existing usage**<br>
+	The placement new syntax already exists and is widely used. Instead of inventing a new library alternative, we can improve the performance of code already out there and enable the same code to work correctly with new kinds of user-defined allocators.
