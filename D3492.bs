@@ -1,10 +1,10 @@
 <pre class='metadata'>
 Text Macro: PAPERNUMBER 3492
 Title: Sized deallocation for placement new
-Revision: 0
+Revision: 1
 Status: D
 Group: WG21
-Audience: EWGI, EWG
+Audience: SG17
 Abstract: Permit the selection of a sized placement deallocation function in new expressions.
 
 Repository: vasama/wg21
@@ -48,6 +48,16 @@ Furthermore, unlike global deallocation functions, placement allocation function
 
 Note:The terms placement allocation function and placement deallocation function are not currently defined, but we take them to mean that set of allocation functions which are only ever selected by placement new expressions and not by usual new expressions, and the matching set of deallocation functions. See [[CWG2592]].
 
+## Usage with allocators ## {#introduction_allocators}
+
+The following pattern, using a custom placement allocation function is somewhat common:
+
+<xmp>
+T* ptr = new (alloc) T(args...);
+</xmp>
+
+If the construction throws an exception, and a matching placement deallocation function exists, it is invoked to free the allocated memory. That deallocation function does not have access to the size of the allocation. Therefore if `alloc` were to follow the standard allocator model, it would not be possible to deallocate the memory, because the standard allocator model requires providing the size of the allocation to its `deallocate` function.
+
 # Proposal # {#proposal}
 
 We propose to permit placement new expressions to use two partially matching deallocation functions:
@@ -81,7 +91,11 @@ void delete_via(Allocator const& allocator, T* const ptr)
 delete_via(alloc, new (alloc) T);
 </xmp>
 
-Or possibly by a more general function template implementing placement delete via calls to placement deallocation functions.
+Or possibly by a more general function template implementing placement delete via calls to placement deallocation functions:
+
+<xmp>
+delete_via(alloc)( new (alloc) T );
+</xmp>
 
 **Why then, should we not also use a function template for the object creation instead of placement new?**
 
