@@ -1,0 +1,44 @@
+<pre class='metadata'>
+Text Macro: PAPERNUMBER xxx7
+Title: Reconsider reflection access for C++26
+Revision: 0
+Status: D
+Group: WG21
+Audience: EWG
+Abstract: Reconsider member access bypassing in C++26
+
+Repository: vasama/wg21
+Local Boilerplate: computed-metadata yes
+</pre>
+
+# Introduction # {#introduction}
+
+The killer feature of reflection is automation. Automating the generation of boilerplate we could already have written by hand. [[P2996R7]] goes beyond that in effectively adding new powers to C++. In particular by allowing code to bypass the access protections of arbitrary classes. The automation of boilerplate generation is fantastically well motivated. The same cannot be said for access bypassing.
+
+# Motivation # {#motivation}
+
+## Existing codebases ## {#motivation_existing}
+
+It has been argued that users with large codebases may wish to apply reflection to a large number of existing types automatically, say for the purposes of serialization, and that having to provide access to the reflecting code (e.g. by befriending) is <i>cumbersome</i>. There are a few flaws with this reasoning:
+
+1. It is not possible to correctly serialize arbitrary types with invariants. Serializing any such types would in any case require providing guidance to the serializer, e.g. in the form of annotations [[P3394R0]].
+2. Any such existing code very likely already includes manually written equivalents of the code soon to be generated through reflection. In the switch to automatic serialization, that code is likely going to be removed lest it be left for dead.
+
+For these reasons, any such types would in any case have to manual audits and modifications before a generic reflection based serializer can be applied. It is hard to imagine a scenario where reflection could be succesfully applied to a large number of existing types with invariants for any non-trivial use case and without any changes to the types in question.
+
+## Third party libraries ## {#motivation_libraries}
+
+Some users have expressed a desire to access the internals of third-party libraries in order to implement features not provided in the public API of the library. This may involve reading or writing private member variables or invoking private member functions. Proponents will argue that cooperating with library authors and upstreaming changes is difficult; it requires getting along with people. Forking and maintaining customized versions of libraries for private use is considered to be too much effort.
+
+The standard library itself is often used as an example of this. Despite the introduction of `resize_for_overwrite`, some users would like to resize standard library containers without initializing their elements. There are good reasons for wanting to do this - particularly asynchronous initialization - but it is a problem to be solved in the committee; a social problem. (Or alternatively as a non-standard extension.)
+
+## Legacy code ## {#motivation_legacy}
+
+Some users depend on libraries that simply cannot ever be changed, for whatever political reasons. This could be considered yet another social problem, but for the sake of the argument we shall consider it a business requirement. This begs the question of why whatever entity is blocking changes to this code would instead allow accessing its internals and potentially violating its invariants. Perhaps it is thought that an access bypassing solution applied from the outside might fly under the radar if not too loudly advertised.
+
+## Debugging ## {#motivation_debugging}
+
+[[P2996R7]] provides a single reasonable motivating example for accessing arbitrary privates: the universal formatter.
+
+
+Even if one were to consider this sufficient motivation for accessing arbitrary privates, 
