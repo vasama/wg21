@@ -1,0 +1,16 @@
+<pre class='metadata'>
+Text Macro: PAPERNUMBER xxx4
+Title: operator return
+Revision: 0
+Status: D
+Group: WG21
+Audience: EWG
+Abstract: Introduce a new operator used to initialize a return object in absence of explicit return.
+
+Repository: vasama/wg21
+Local Boilerplate: computed-metadata yes
+</pre>
+
+# Introduction # {#introduction}
+
+
