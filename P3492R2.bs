@@ -1,8 +1,8 @@
 <pre class='metadata'>
 Text Macro: PAPERNUMBER 3492
 Title: Sized deallocation for placement new
-Revision: 3
-Status: D
+Revision: 2
+Status: P
 Group: WG21
 Audience: EWG
 Abstract: Permit the selection of a sized placement deallocation function in new expressions.
