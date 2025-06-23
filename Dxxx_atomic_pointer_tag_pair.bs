@@ -1,0 +1,14 @@
+<pre class='metadata'>
+Text Macro: PAPERNUMBER xxxx_atomic_pointer_tag_pair_
+Title: atomic<pointer_tag_pair>
+Revision: 0
+Status: D
+Group: WG21
+Audience: SG1, LEWG
+Abstract: Introduce atomic specializations for pointer_tag_pair.
+
+Repository: vasama/wg21
+Local Boilerplate: computed-metadata yes
+</pre>
+
+# Introduction # {#introduction}
