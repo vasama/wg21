@@ -1,0 +1,11 @@
+* move the conditional part from the end up before defining the selection process
+* "first argument" is unclear
+* eliminate from further consideration any functions -> eliminate any candidates
+* Each candidate that is a function template, is replaced by the function template specialization (if any) generated using...
+* parameters of the ~selected~ allocation function
+* Merge multiple bullets into one sentence: ~ The two parameter-type-lists shall be identical, excluding the first parameter of each.
+* Wording for constraints: https://eel.is/c++draft/over#match.viable-3
+* No tie breaking - no change needed. Evolutionary change.
+* Additional example for constraint satisfaction checking.
+* Example 2: A -> A<I>
+* Example 2: Uses #1 -> clarify that no deallocation happens
