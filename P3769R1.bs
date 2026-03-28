@@ -1,0 +1,185 @@
+<pre class='metadata'>
+Text Macro: PAPERNUMBER 3769
+Title: Clarification of placement new deallocation
+Revision: 1
+Status: P
+Group: WG21
+Audience: CWG
+Abstract: Clarifies wording for selection of deallocation functions in placement new expressions.
+
+Repository: vasama/wg21
+Local Boilerplate: computed-metadata yes
+</pre>
+
+<style>
+.p3769-bullet {
+    display: inline-block;
+    text-align: center;
+    width: 2lh;
+}
+</style>
+
+# Introduction # {#introduction}
+
+[[P3492R2]] was forwarded to CWG in Hagenberg. In addition to its main language additions, it provided a drive-by fix for the poorly specified selection of deallocation functions in placement new expressions. The wording changes were split into this paper to make it easier to review the changes happening concurrently in this area:
+1. The wording improvements now separated into this paper.
+2. The language changes in [[P3492R2]] (Sized deallocation for placement new).
+3. The language changes in [[P2719R5]] (Type-aware allocation and deallocation).
+
+In addition it is proposed that the wording changes in this paper be applied as a defect report.
+
+# Implementation divergence # {#divergence}
+
+There are two cases of implementation divergence around the use of deallocation functions in placement new expressions:
+1. Whether function templates are considered valid candidates and argument deduction is performed. The current standard says no, however EDG alone conforms, and only in the case of global deallocation function templates.
+2. The current wording specifies that if a deleted or inaccessible deallocation function is selected, the program is ill-formed. GCC and EDG are non-conforming in this case.
+
+<xmp>
+template<int>
+struct alloc {};
+
+void* operator new(size_t, alloc<0>& a);
+
+template<int I>
+void operator delete(void*, alloc<I>& a); // #1
+
+void operator delete(void*, alloc<0>& a) = delete; // #2
+
+int main() {
+    alloc<0> al;
+    new (al) thrower();
+}
+</xmp>
+
+Current implementation behaviour:
+
+<table>
+    <thead>
+    <tr>
+        <th></th>
+        <th>As shown</th>
+        <th>With #1 removed</th>
+        <th>With #2 removed</th>
+    </tr>
+    </thead>
+    <tr>
+        <th>Clang</th>
+        <th style="color:Yellow">Warning: ambiguity</th>
+        <th style="color:Green">Error: #2 is deleted</th>
+        <th style="color:Yellow">Uses #1</th>
+    </tr>
+    <tr>
+        <th>GCC</th>
+        <th style="color:Yellow">&mdash;</th>
+        <th style="color:Red">&mdash;</th>
+        <th style="color:Yellow">Uses #1</th>
+    </tr>
+    <tr>
+        <th>MSVC</th>
+        <th style="color:Yellow">Error: #2 is deleted</th>
+        <th style="color:Green">Error: #2 is deleted</th>
+        <th style="color:Yellow">Uses #1</th>
+    </tr>
+    <tr>
+        <th>EDG</th>
+        <th style="color:Yellow">&mdash;</th>
+        <th style="color:Red">&mdash;</th>
+        <th style="color:Yellow">&mdash;<sup>1</sup></th>
+    </tr>
+    <tr>
+        <th>P[PAPERNUMBER]</th>
+        <th>&mdash;</th>
+        <th>Error: #2 is deleted</th>
+        <th>Uses #1</th>
+    </tr>
+</table>
+
+<span class="p3769-bullet">&mdash;</span> No deallocation function is selected ~ the memory is leaked.<br/>
+<span class="p3769-bullet">🟢</span> Behaviour is conforming.<br/>
+<span class="p3769-bullet">🔴</span> Behaviour is non-conforming.<br/>
+<span class="p3769-bullet">🟡</span> The standard is ambiguous.<br/>
+
+<sup>1</sup> If the operators are class specific, EDG selects an unambiguous function template (i.e. with #1 removed) only if it is not deleted. If the selected function is deleted, no diagnostic is issued.
+
+# Wording # {#wording}
+
+## [expr.new] ## {#wording_exprnew}
+
+Modify <a href="[CPP]/expr.new">[expr.new]</a> as follows:
+
+<blockquote>
+If the <i>new-expression</i> does not begin with a unary ​`::`​ operator and the allocated type is a class type `T` or an array thereof, a search is performed for the deallocation function's name in the scope of `T`. Otherwise, or if nothing is found, the deallocation function's name is looked up by searching for it in the global scope.
+</blockquote>
+
+<blockquote>
+<del>
+A declaration of a placement deallocation function matches the declaration of a placement allocation function if it has the same number of parameters and, after parameter transformations ([dcl.fct]), all parameter types except the first are identical. If the lookup finds a single matching deallocation function, that function will be called; otherwise, no deallocation function will be called. If the lookup finds a usual deallocation function and that function, considered as a placement deallocation function, would have been selected as a match for the allocation function, the program is ill-formed.</del> For a non-placement allocation function, the normal deallocation function lookup is used to find the matching deallocation function ([expr.delete]). <ins>For a placement allocation function, the selection process is described below.</ins> In any case, the matching deallocation function (if any) shall be non-deleted and accessible from the point where the <i>new-expression</i> appears.
+</blockquote>
+
+<blockquote>
+<ins>
+For a placement allocation function, the matching deallocation function is selected as follows:
+</ins>
+* <ins>Each candidate that is a function template is replaced by the function template specializations (if any) generated using template argument deduction ([temp.over], [temp.deduct.call]) with arguments as specified below.</ins>
+* <ins>Each candidate whose parameter-type-list is not identical to that of the allocation function, ignoring their respective first parameters, is removed from the set of candidates.</ins>
+* <ins>Each candidate whose associated constraints (if any) are not satisfied ([temp.constr.constr]) is removed from the set of candidates.</ins>
+* <ins>If exactly one function remains, that function is selected.</ins>
+* <ins>Otherwise, no deallocation function is selected.</ins>
+
+<ins>If a usual deallocation function is selected, the program is ill-formed.</ins>
+<br/>
+<br/>
+<ins>[Note: A deallocation function with an additional trailing parameter compared to the allocation function is never matched, even if a default argument is provided. &mdash;end note]</ins>
+
+</blockquote>
+
+The following examples are entirely new, but are not highlighted in green in order to improve readability:
+
+<ins>[Example:</ins>
+<pre>
+struct A {};
+struct T { T(); };
+
+void* operator new(std::size_t s, A& al); // #1
+
+template&lt;int = 0&gt;
+void operator delete(void* p, A& al); // #2
+
+A al;
+T* p = new (al) T; // OK, uses #1 and #2.
+</pre>
+<ins>&mdash;end example]</ins><br/>
+
+<ins>[Example:</ins>
+<pre>
+template&lt;int I&gt;
+struct A {};
+struct T { T(); };
+
+void* operator new(std::size_t s, A&lt;0&gt;& al); // #1
+
+template&lt;int I&gt;
+void operator delete(void* p, A&lt;I&gt;& al);
+void operator delete(void* p, A&lt;0&gt;& al);
+
+A&lt;0&gt; al;
+T* p = new (al) T; // OK, uses #1. No deallocation function is selected (two candidates remain).
+</pre>
+<ins>&mdash;end example]</ins><br/>
+
+<ins>[Example:</ins>
+<pre>
+template&lt;int I&gt;
+struct A {};
+struct T { T(); };
+
+void* operator new(std::size_t s, A&lt;0&gt;& al); // #1
+
+template&lt;int I&gt; requires (I &gt; 0)
+void operator delete(void* p, A&lt;I&gt;& al);
+void operator delete(void* p, A&lt;0&gt;& al); // #2
+
+A&lt;0&gt; al;
+T* p = new (al) T; // OK, uses #1 and #2.
+</pre>
+<ins>&mdash;end example]</ins>
